@@ -79,7 +79,7 @@ class FCOSLossEvaluator(object):
         for i, point_per_level in enumerate(points):
             size_interest_per_level = tf.constant(size_of_interest[i])
             expand_interest.append(tf.broadcast_to(
-                size_interest_per_level, [len(point_per_level), size_interest_per_level.shape[-1]]))
+                size_interest_per_level[None], [len(point_per_level), size_interest_per_level.shape[-1]]))
 
         expand_interest_list = tf.stack(expand_interest, axis=0)
         num_point_per_level = [len(point_per_level)
@@ -100,6 +100,47 @@ class FCOSLossEvaluator(object):
                 tf.stack([label_per_im[level] for label_per_im in labels], axis=0))
             reg_targets_level_first.append(tf.stack(
                 [reg_targets_per_im[level] for reg_targets_per_im in reg_targets], axis=0))
+
+        return label_level_first, reg_targets_level_first
+
+    def compute_target_lc(self, locations, targets, object_size_of_interest):
+        labels = []
+        reg_targets = []
+        xs, ys = locations[:, 0], locations[:, 1]
+
+        for im_i in range(len(targets)):
+            targets_per_im = targets[im_i]
+            bboxes = targets_per_im.bbox
+            labels_per_im = targets_per_im.get_field("labels")
+            area = targets_per_im.area()
+
+            l = xs[:, None] - bboxes[:, 0][None]
+            t = ys[:, None] - bboxes[:, 1][None]
+            r = bboxes[:, 2][None] - xs[:, None]
+            b = bboxes[:, 3][None] - ys[:, None]
+            reg_targets_per_im = tf.stack([l, t, r, b], axis=2)
+
+            is_in_box = reg_targets_per_im.min(axis=2)[0] > 0
+            max_reg_targets_per_im = reg_targets_per_im.max(axis=2)[0]
+
+            is_cared_in_level = (max_reg_targets_per_im >= object_size_of_interest[:, [0]]) & (
+                max_reg_targets_per_im <= object_size_of_interest[:, [1]])
+
+            lc_to_gt_area = tf.tile(area[None], [len(locations), 1])
+            lc_to_gt_area[is_in_box == 0] = INF
+            lc_to_gt_area[is_cared_in_level == 0] = INF
+
+            lc_to_min_area, lc_to_gt_inds = lc_to_gt_area.min(axis=1)
+
+            reg_targets_per_im = reg_targets_per_im[range(
+                len(locations)), lc_to_gt_inds]
+            labels_per_im = labels_per_im[lc_to_gt_inds]
+            labels_per_im[lc_to_min_area == INF] = 0
+
+            labels.append(labels_per_im)
+            reg_targets.append(reg_targets_per_im)
+
+        return labels, reg_targets
 
 
 def fcos_loss_evaluator(cfg):
