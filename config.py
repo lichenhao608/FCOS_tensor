@@ -132,7 +132,7 @@ cfg.MODEL.ROI_BOX_HEAD.PREDICTOR = "FastRCNNPredictor"
 cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION = 14
 cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO = 0
 cfg.MODEL.ROI_BOX_HEAD.POOLER_SCALES = (1.0 / 16,)
-cfg.MODEL.ROI_BOX_HEAD.NUMcfgLASSES = 81
+cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES = 81
 # Hidden layer dimension when using an MLP for the RoI box head
 cfg.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM = 1024
 # GN
@@ -140,7 +140,7 @@ cfg.MODEL.ROI_BOX_HEAD.USE_GN = False
 # Dilation
 cfg.MODEL.ROI_BOX_HEAD.DILATION = 1
 cfg.MODEL.ROI_BOX_HEAD.CONV_HEAD_DIM = 256
-cfg.MODEL.ROI_BOX_HEAD.NUM_STACKEDcfgONVS = 4
+cfg.MODEL.ROI_BOX_HEAD.NUM_STACKED_CONVS = 4
 
 
 cfg.MODEL.ROI_MASK_HEAD = CN()
@@ -170,7 +170,7 @@ cfg.MODEL.ROI_KEYPOINT_HEAD.POOLER_SCALES = (1.0 / 16,)
 cfg.MODEL.ROI_KEYPOINT_HEAD.MLP_HEAD_DIM = 1024
 cfg.MODEL.ROI_KEYPOINT_HEAD.CONV_LAYERS = tuple(512 for _ in range(8))
 cfg.MODEL.ROI_KEYPOINT_HEAD.RESOLUTION = 14
-cfg.MODEL.ROI_KEYPOINT_HEAD.NUMcfgLASSES = 17
+cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_CLASSES = 17
 cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR = True
 
 # ---------------------------------------------------------------------------- #
@@ -198,9 +198,10 @@ cfg.MODEL.RESNETS.STEM_FUNC = "StemWithFixedBatchNorm"
 # Apply dilation in stage "res5"
 cfg.MODEL.RESNETS.RES5_DILATION = 1
 
-cfg.MODEL.RESNETS.BACKBONE_OUTcfgHANNELS = 256 * 4
-cfg.MODEL.RESNETS.RES2_OUTcfgHANNELS = 256
-cfg.MODEL.RESNETS.STEM_OUTcfgHANNELS = 64
+cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS = 256 * 4
+cfg.MODEL.RESNETS.RES2_OUT_CHANNELS = 256
+cfg.MODEL.RESNETS.STEM_OUT_CHANNELS = 64
+
 
 # ---------------------------------------------------------------------------- #
 # FCOS Options
@@ -220,66 +221,6 @@ cfg.MODEL.FCOS.LOSS_GAMMA = 2.0
 
 # the number of convolutions used in the cls and bbox tower
 cfg.MODEL.FCOS.NUM_CONVS = 4
-
-# ---------------------------------------------------------------------------- #
-# RetinaNet Options (Follow the Detectron version)
-# ---------------------------------------------------------------------------- #
-cfg.MODEL.RETINANET = CN()
-
-# This is the number of foreground classes and background.
-cfg.MODEL.RETINANET.NUM_CLASSES = 81
-
-# Anchor aspect ratios to use
-cfg.MODEL.RETINANET.ANCHOR_SIZES = (32, 64, 128, 256, 512)
-cfg.MODEL.RETINANET.ASPECT_RATIOS = (0.5, 1.0, 2.0)
-cfg.MODEL.RETINANET.ANCHOR_STRIDES = (8, 16, 32, 64, 128)
-cfg.MODEL.RETINANET.STRADDLE_THRESH = 0
-
-# Anchor scales per octave
-cfg.MODEL.RETINANET.OCTAVE = 2.0
-cfg.MODEL.RETINANET.SCALES_PER_OCTAVE = 3
-
-# Use C5 or P5 to generate P6
-cfg.MODEL.RETINANET.USE_C5 = True
-
-# Convolutions to use in the cls and bbox tower
-# NOTE: this doesn't include the last conv for logits
-cfg.MODEL.RETINANET.NUM_CONVS = 4
-
-# Weight for bbox_regression loss
-cfg.MODEL.RETINANET.BBOX_REG_WEIGHT = 4.0
-
-# Smooth L1 loss beta for bbox regression
-cfg.MODEL.RETINANET.BBOX_REG_BETA = 0.11
-
-# During inference, #locs to select based on cls score before NMS is performed
-# per FPN level
-cfg.MODEL.RETINANET.PRE_NMS_TOP_N = 1000
-
-# IoU overlap ratio for labeling an anchor as positive
-# Anchors with >= iou overlap are labeled positive
-cfg.MODEL.RETINANET.FG_IOU_THRESHOLD = 0.5
-
-# IoU overlap ratio for labeling an anchor as negative
-# Anchors with < iou overlap are labeled negative
-cfg.MODEL.RETINANET.BG_IOU_THRESHOLD = 0.4
-
-# Focal loss parameter: alpha
-cfg.MODEL.RETINANET.LOSS_ALPHA = 0.25
-
-# Focal loss parameter: gamma
-cfg.MODEL.RETINANET.LOSS_GAMMA = 2.0
-
-# Prior prob for the positives at the beginning of training. This is used to set
-# the bias init for the logits layer
-cfg.MODEL.RETINANET.PRIOR_PROB = 0.01
-
-# Inference cls score threshold, anchors with score > INFERENCE_TH are
-# considered for inference
-cfg.MODEL.RETINANET.INFERENCE_TH = 0.05
-
-# NMS threshold used in RetinaNet
-cfg.MODEL.RETINANET.NMS_TH = 0.4
 
 # ---------------------------------------------------------------------------- #
 # Solver
@@ -328,5 +269,5 @@ cfg.TEST.DETECTIONS_PER_IMG = 100
 # ---------------------------------------------------------------------------- #
 cfg.OUTPUT_DIR = "."
 
-cfg.PATHScfgATALOG = os.path.join(
-    os.path.dirname(__file__), "pathscfgatalog.py")
+cfg.PATHS_CATALOG = os.path.join(
+    os.path.dirname(__file__), "paths_catalog.py")

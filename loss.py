@@ -142,6 +142,25 @@ class FCOSLossEvaluator(object):
 
         return labels, reg_targets
 
+    def compute_centerness_target(self, reg_targets):
+        left_right = reg_targets[:, [0, 2]]
+        top_bottom = reg_targets[:, [1, 3]]
+        centerness = (left_right.min(axis=-1)[0] / left_right.max(axis=-1)[0]) * (
+            top_bottom.min(axis=-1)[0] / top_bottom.max(axis=-1)[0])
+        return tf.sqrt(centerness)
+
+    def __call__(self, locations, box_cls, box_regression, centerness, targets):
+        N = box_cls[0].shape.as_list()[0]
+        num_classes = box_cls[0].shape.as_list()[1]
+        labels, reg_targets = self.prepare_target(locations, targets)
+
+        box_cls_flat = []
+        box_reg_flat = []
+        centerness_flat = []
+        labels_flat = []
+        reg_targets_flat = []
+        for l in range(len(labels)):
+            box_cls_flat.append(box_cls[l].)
 
 def fcos_loss_evaluator(cfg):
     return FCOSLossEvaluator(cfg)
