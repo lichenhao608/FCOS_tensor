@@ -202,6 +202,7 @@ cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS = 256 * 4
 cfg.MODEL.RESNETS.RES2_OUT_CHANNELS = 256
 cfg.MODEL.RESNETS.STEM_OUT_CHANNELS = 64
 
+cfg.MODEL.RESNETS.FIXED_BLOCKS = 1
 
 # ---------------------------------------------------------------------------- #
 # FCOS Options

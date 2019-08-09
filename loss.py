@@ -160,7 +160,14 @@ class FCOSLossEvaluator(object):
         labels_flat = []
         reg_targets_flat = []
         for l in range(len(labels)):
-            box_cls_flat.append(box_cls[l].)
+            box_cls_flat.append(tf.reshape(tf.transpose(
+                box_cls[l], perm=[0, 2, 3, 1]), [-1, num_classes]))
+            box_reg_flat.append(tf.reshape(tf.transpose(
+                box_regression[l], perm=[0, 2, 3, 1]), [-1, 4]))
+            labels_flat.append(tf.reshape(labels[l], [-1]))
+            reg_targets_flat.append(tf.reshape(reg_targets[l], [-1, 4]))
+            centerness_flat.append(tf.reshape(centerness[l], [-1]))
+
 
 def fcos_loss_evaluator(cfg):
     return FCOSLossEvaluator(cfg)

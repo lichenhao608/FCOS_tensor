@@ -7,7 +7,35 @@ from tensorflow.contrib import slim
 from tensorflow.contrib.slim.nets import resnet_v1, resnet_utils
 
 
-def backbone(cfg, img, scope_name='resnet_v1_101'):
+def resnet_arg_scope(
+        is_training=True, weight_decay=cfg.SOLVER.WEIGHT_DECAY, batch_norm_decay=0.997,
+        batch_norm_epsilon=1e-5, batch_norm_scale=True):
+    '''
+
+    In Default, we do not use BN to train resnet, since batch_size is too small.
+    So is_training is False and trainable is False in the batch_norm params.
+
+    '''
+    batch_norm_params = {
+        'is_training': False, 'decay': batch_norm_decay,
+        'epsilon': batch_norm_epsilon, 'scale': batch_norm_scale,
+        'trainable': False,
+        'updates_collections': tf.GraphKeys.UPDATE_OPS
+    }
+
+    with slim.arg_scope(
+            [slim.conv2d],
+            weights_regularizer=slim.l2_regularizer(weight_decay),
+            weights_initializer=slim.variance_scaling_initializer(),
+            trainable=is_training,
+            activation_fn=tf.nn.relu,
+            normalizer_fn=slim.batch_norm,
+            normalizer_params=batch_norm_params):
+        with slim.arg_scope([slim.batch_norm], **batch_norm_params) as arg_sc:
+            return arg_sc
+
+
+def backbone(cfg, img, scope_name='resnet_v1_101', is_training=True):
     blocks = [
         resnet_v1.resnet_v1_block(
             'block1', base_depth=64, num_units=3, stride=2),
@@ -19,7 +47,7 @@ def backbone(cfg, img, scope_name='resnet_v1_101'):
             'block4', base_depth=512, num_units=3, stride=2)
     ]
 
-    with slim.arg_scope(resnet_v1.resnet_arg_scope()):
+    with slim.arg_scope(resnet_arg_scope(is_training=False)):
         with tf.variable_scope(scope_name, scope_name):
             net = resnet_utils.conv2d_same(
                 img, cfg.MODEL.FCOS.NUM_CLASSES, 7, stride=2, scope='conv1')
@@ -27,41 +55,44 @@ def backbone(cfg, img, scope_name='resnet_v1_101'):
             net = slim.max_pool2d(
                 net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-        C2, end_points_C2 = resnet_v1.resnet_v1(net,
-                                                blocks[0:1],
-                                                global_pool=False,
-                                                include_root_block=False,
-                                                scope=scope_name)
+    not_freezed = [False] * cfg.MODEL.RESNETS.FIXED_BLOCKS + \
+        (4-cfg.MODEL.RESNETS.FIXED_BLOCKS)*[True]
 
-    with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-        C3, end_points_C3 = resnet_v1.resnet_v1(C2,
-                                                blocks[1:2],
-                                                global_pool=False,
-                                                include_root_block=False,
-                                                scope=scope_name)
+    with slim.arg_scope(resnet_arg_scope(is_training=(is_training and not_freezed[0]))):
+        C2, _ = resnet_v1.resnet_v1(net,
+                                    blocks[0:1],
+                                    global_pool=False,
+                                    include_root_block=False,
+                                    scope=scope_name)
 
-    with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-        C4, end_points_C4 = resnet_v1.resnet_v1(C3,
-                                                blocks[2:3],
-                                                global_pool=False,
-                                                include_root_block=False,
-                                                scope=scope_name)
+    with slim.arg_scope(resnet_arg_scope(is_training=(is_training and not_freezed[1]))):
+        C3, _ = resnet_v1.resnet_v1(C2,
+                                    blocks[1:2],
+                                    global_pool=False,
+                                    include_root_block=False,
+                                    scope=scope_name)
+
+    with slim.arg_scope(resnet_arg_scope(is_training=(is_training and not_freezed[2]))):
+        C4, _ = resnet_v1.resnet_v1(C3,
+                                    blocks[2:3],
+                                    global_pool=False,
+                                    include_root_block=False,
+                                    scope=scope_name)
 
     # add_heatmap(C4, name='Layer4/C4_heat')
 
     # C4 = tf.Print(C4, [tf.shape(C4)], summarize=10, message='C4_shape')
-    with slim.arg_scope(resnet_v1.resnet_arg_scope()):
-        C5, end_points_C5 = resnet_v1.resnet_v1(C4,
-                                                blocks[3:4],
-                                                global_pool=False,
-                                                include_root_block=False,
-                                                scope=scope_name)
+    with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
+        C5, _ = resnet_v1.resnet_v1(C4,
+                                    blocks[3:4],
+                                    global_pool=False,
+                                    include_root_block=False,
+                                    scope=scope_name)
 
-    feature_dict = {'C2': end_points_C2['{}/block1/unit_2/bottleneck_v1'.format(scope_name)],
-                    'C3': end_points_C3['{}/block2/unit_3/bottleneck_v1'.format(scope_name)],
-                    'C4': end_points_C4['{}/block3/unit_22/bottleneck_v1'.format(scope_name)],
-                    'C5': end_points_C5['{}/block4/unit_3/bottleneck_v1'.format(scope_name)]
+    feature_dict = {'C2': C2,
+                    'C3': C3,
+                    'C4': C4,
+                    'C5': C5
                     }
 
     pyramid_dict = {}
