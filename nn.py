@@ -4,7 +4,7 @@ from fcos import FCOSModule
 from keras import Sequential
 from keras.layers import Conv2D
 from tensorflow.contrib import slim
-from tensorflow.contrib.slim.nets import resnet_v1, resnet_utils
+from tensorflow.contrib.slim.nets import resnet_v2, resnet_utils
 
 
 def resnet_arg_scope(
